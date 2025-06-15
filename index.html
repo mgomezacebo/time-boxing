@@ -3,252 +3,142 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Temporizador de Boxeo</title>
-  <style>
-    * {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  font-family: Arial, sans-serif;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  background-color: #f0f0f0;
-}
-
-.container {
-  text-align: center;
-  background-color: #fff;
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.1);
-}
-
-.timer-section {
-  margin-bottom: 20px;
-}
-
-#timer {
-  font-size: 60px;
-  color: #333;
-}
-
-.controls-section {
-  margin-bottom: 20px;
-}
-
-.controls-section button {
-  padding: 10px 20px;
-  font-size: 16px;
-  margin: 5px;
-  cursor: pointer;
-}
-
-.settings-section {
-  text-align: left;
-}
-
-.settings-section h2, .settings-section h3 {
-  margin-bottom: 10px;
-}
-
-.settings-section input {
-  margin: 5px 10px;
-  padding: 5px;
-  font-size: 16px;
-}
-  </style>
+  <title>Reloj de Boxeo</title>
+  <!-- CDN de Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-  <div class="container">
-    <div class="timer-section">
-      <h1 id="timer">00:00</h1>
+<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center p-4">
+
+  <!-- Contenedor principal -->
+  <div class="max-w-md w-full">
+    <h1 class="text-3xl font-bold text-center mb-6">Reloj de Boxeo</h1>
+
+    <!-- Formulario de configuración -->
+    <div class="bg-gray-800 p-4 rounded-xl mb-6">
+      <label class="block mb-2">Nº de Combates:</label>
+      <input type="number" id="rounds" value="3" class="w-full p-2 rounded bg-gray-700 text-white mb-4">
+
+      <label class="block mb-2">Duración de Asalto (segundos):</label>
+      <input type="number" id="fightDuration" value="180" class="w-full p-2 rounded bg-gray-700 text-white mb-4">
+
+      <label class="block mb-2">Duración de Descanso (segundos):</label>
+      <input type="number" id="restDuration" value="60" class="w-full p-2 rounded bg-gray-700 text-white">
     </div>
 
-    <div class="controls-section">
-      <button id="start">Iniciar</button>
-      <button id="pause">Pausar</button>
-      <button id="reset">Reiniciar</button>
+    <!-- Display del contador -->
+    <div id="counterDisplay" class="text-center text-6xl font-bold mb-6 py-10 rounded-xl transition-all duration-500 bg-red-600">
+      03:00
     </div>
 
-    <div class="settings-section">
-      <h2>Ajustes del temporizador</h2>
-      
-      <label for="rounds">Número de rondas:</label>
-      <input type="number" id="rounds" min="1" value="3">
-
-      <h3>Tiempo por ronda</h3>
-      <label for="round-minutes">Minutos:</label>
-      <input type="number" id="round-minutes" min="0" value="3">
-      <label for="round-seconds">Segundos:</label>
-      <input type="number" id="round-seconds" min="0" value="0">
-
-      <h3>Tiempo de descanso</h3>
-      <label for="rest-minutes">Minutos:</label>
-      <input type="number" id="rest-minutes" min="0" value="1">
-      <label for="rest-seconds">Segundos:</label>
-      <input type="number" id="rest-seconds" min="0" value="0">
+    <!-- Controles -->
+    <div class="flex justify-around mb-4">
+      <button id="startBtn" class="bg-green-600 px-4 py-2 rounded-xl">Iniciar</button>
+      <button id="pauseBtn" class="bg-yellow-500 px-4 py-2 rounded-xl">Pausar</button>
+      <button id="resetBtn" class="bg-red-700 px-4 py-2 rounded-xl">Reiniciar</button>
     </div>
+
+    <!-- Sonido -->
+    <audio id="sound" src="sonido.mp3"></audio>
   </div>
 
-  <audio id="bell-sound" src="bell.mp3" preload="auto"></audio>
-
+  <!-- Lógica JavaScript -->
   <script>
-    // Variables globales
-let interval;
-let isRunning = false;
-let isPaused = false;
-let currentRound = 1;
-let remainingTime; // En segundos
-let isResting = false; // Controla si estamos en descanso o en ronda
+    // Referencias a los elementos
+    const roundsInput = document.getElementById('rounds');
+    const fightInput = document.getElementById('fightDuration');
+    const restInput = document.getElementById('restDuration');
+    const counterDisplay = document.getElementById('counterDisplay');
+    const startBtn = document.getElementById('startBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const sound = document.getElementById('sound');
 
-// Elementos del DOM
-const timerDisplay = document.getElementById('timer');
-const startButton = document.getElementById('start');
-const pauseButton = document.getElementById('pause');
-const resetButton = document.getElementById('reset');
+    // Variables de estado
+    let rounds, fightDuration, restDuration;
+    let currentRound = 1;
+    let isFighting = true;
+    let timer;
+    let remainingTime;
+    let isPaused = false;
 
-const roundsInput = document.getElementById('rounds');
-const roundMinutesInput = document.getElementById('round-minutes');
-const roundSecondsInput = document.getElementById('round-seconds');
-const restMinutesInput = document.getElementById('rest-minutes');
-const restSecondsInput = document.getElementById('rest-seconds');
+    // Función para formatear los segundos a mm:ss
+    function formatTime(seconds) {
+      const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+      const s = String(seconds % 60).padStart(2, '0');
+      return `${m}:${s}`;
+    }
 
-const bellSound = document.getElementById('bell-sound');
+    // Iniciar el cronómetro
+    function startTimer() {
+      rounds = parseInt(roundsInput.value);
+      fightDuration = parseInt(fightInput.value);
+      restDuration = parseInt(restInput.value);
+      currentRound = 1;
+      isFighting = true;
+      remainingTime = fightDuration;
+      updateDisplay();
+      playSound();
 
-// Función para convertir minutos y segundos en tiempo total en segundos
-function getTotalSeconds(minutes, seconds) {
-  minutes = minutes === '' ? 0 : parseInt(minutes);
-  seconds = seconds === '' ? 0 : parseInt(seconds);
-  return minutes * 60 + seconds;
-}
+      timer = setInterval(runTimer, 1000);
+    }
 
-// Función para actualizar la pantalla del temporizador
-function updateDisplay(seconds) {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  timerDisplay.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-}
+    // Lógica del cronómetro
+    function runTimer() {
+      if (isPaused) return;
 
-// Función para actualizar el color del temporizador
-function updateTimerColor() {
-  if (!isRunning && !isPaused) {
-    timerDisplay.style.color = 'gray'; // Color gris cuando está parado
-  } else if (isResting) {
-    timerDisplay.style.color = 'green'; // Color verde en descanso
-  } else {
-    timerDisplay.style.color = 'red'; // Color rojo en combate
-  }
-}
-
-// Función para iniciar el temporizador
-function startTimer() {
-  if (isRunning) return; // Evitar que se inicie de nuevo si ya está corriendo
-
-  if (isPaused) {
-    // Si está en pausa, reanudar desde donde se dejó
-    isPaused = false;
-    isRunning = true;
-  } else {
-    // Si no está pausado, comenzar desde cero
-    currentRound = 1;
-    isResting = false;
-    remainingTime = getTotalSeconds(roundMinutesInput.value, roundSecondsInput.value);
-  }
-
-  isRunning = true;
-  bellSound.play(); // Reproducir sonido al iniciar
-
-  updateTimerColor(); // Actualizar el color al iniciar
-
-  interval = setInterval(() => {
-    if (remainingTime > 0) {
       remainingTime--;
-      updateDisplay(remainingTime);
-    } else {
-      bellSound.play(); // Reproducir sonido al final de cada ronda o descanso
+      updateDisplay();
 
-      if (!isResting) {
-        // Si la ronda terminó, comenzar el descanso
-        if (currentRound < roundsInput.value) {
-          isResting = true;
-          remainingTime = getTotalSeconds(restMinutesInput.value, restSecondsInput.value);
-          updateTimerColor(); // Cambiar a verde en descanso
+      if (remainingTime <= 0) {
+        playSound();
+        if (isFighting) {
+          isFighting = false;
+          remainingTime = restDuration;
         } else {
-          // Si es la última ronda, detener el temporizador
-          clearInterval(interval);
-          isRunning = false;
-          updateTimerColor(); // Cambiar a gris cuando termine
-          return;
+          currentRound++;
+          if (currentRound > rounds) {
+            clearInterval(timer);
+            counterDisplay.textContent = 'Fin';
+            counterDisplay.className = 'text-center text-6xl font-bold mb-6 py-10 rounded-xl bg-gray-700';
+            return;
+          }
+          isFighting = true;
+          remainingTime = fightDuration;
         }
-      } else {
-        // Si el descanso terminó, comenzar la siguiente ronda
-        currentRound++;
-        isResting = false;
-        remainingTime = getTotalSeconds(roundMinutesInput.value, roundSecondsInput.value);
-        updateTimerColor(); // Cambiar a rojo en combate
+        updateDisplay();
       }
     }
-  }, 1000);
-}
 
-// Función para pausar el temporizador
-function pauseTimer() {
-  if (isRunning) {
-    clearInterval(interval); // Detener el intervalo
-    isPaused = true; // Marcar que está pausado
-    isRunning = false; // Indicar que no está corriendo
-    updateTimerColor(); // Cambiar a gris en pausa
-  }
-}
+    // Actualizar el display visual
+    function updateDisplay() {
+      counterDisplay.textContent = formatTime(remainingTime);
+      counterDisplay.className = `text-center text-6xl font-bold mb-6 py-10 rounded-xl transition-all duration-500 ${isFighting ? 'bg-red-600' : 'bg-green-600'}`;
+    }
 
-// Función para reiniciar el temporizador
-function resetTimer() {
-  clearInterval(interval); // Detener cualquier temporizador en ejecución
-  isRunning = false;
-  isPaused = false;
-  isResting = false;
-  currentRound = 1;
-  remainingTime = getTotalSeconds(roundMinutesInput.value, roundSecondsInput.value);
-  updateDisplay(remainingTime); // Actualizar la pantalla del cronómetro con el tiempo inicial
-  updateTimerColor(); // Cambiar a gris al reiniciar
-}
+    // Función para reproducir el sonido
+    function playSound() {
+      sound.currentTime = 0;
+      sound.play();
+    }
 
-// Listeners para los botones
-startButton.addEventListener('click', startTimer);
-pauseButton.addEventListener('click', pauseTimer);
-resetButton.addEventListener('click', resetTimer);
+    // Controles de botones
+    startBtn.addEventListener('click', () => {
+      clearInterval(timer);
+      startTimer();
+    });
 
-// Cargar la configuración guardada en cookies
-window.onload = function() {
-  if (document.cookie) {
-    const settings = JSON.parse(document.cookie.replace(/(?:(?:^|.*;\s*)settings\s*\=\s*([^;]*).*$)|^.*$/, "$1"));
-    roundsInput.value = settings.rounds;
-    roundMinutesInput.value = settings.roundMinutes;
-    roundSecondsInput.value = settings.roundSeconds;
-    restMinutesInput.value = settings.restMinutes;
-    restSecondsInput.value = settings.restSeconds;
-    resetTimer(); // Restablecer el temporizador en la configuración inicial
-  } else {
-    resetTimer(); // Si no hay cookies, inicializar el temporizador con valores predeterminados
-  }
-};
+    pauseBtn.addEventListener('click', () => {
+      isPaused = !isPaused;
+      pauseBtn.textContent = isPaused ? 'Continuar' : 'Pausar';
+    });
 
-// Guardar la configuración en cookies
-window.onbeforeunload = function() {
-  const settings = {
-    rounds: roundsInput.value,
-    roundMinutes: roundMinutesInput.value,
-    roundSeconds: roundSecondsInput.value,
-    restMinutes: restMinutesInput.value,
-    restSeconds: restSecondsInput.value,
-  };
-  document.cookie = "settings=" + JSON.stringify(settings) + "; path=/";
-};
+    resetBtn.addEventListener('click', () => {
+      clearInterval(timer);
+      counterDisplay.textContent = formatTime(parseInt(fightInput.value));
+      counterDisplay.className = 'text-center text-6xl font-bold mb-6 py-10 rounded-xl bg-red-600';
+      isPaused = false;
+      pauseBtn.textContent = 'Pausar';
+    });
   </script>
 </body>
 </html>
