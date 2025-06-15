@@ -1,4 +1,4 @@
-# 🥊 Reloj de Boxeo
+# 🥊 Time Boxing
 
 Una sencilla aplicación web de **reloj de boxeo** desarrollada en un único archivo HTML usando **Tailwind CSS** y **JavaScript puro**.
 
@@ -43,18 +43,8 @@ Todo está contenido en un solo archivo `.html`:
 - Formulario de configuración superior.
 - Visualizador central de cuenta regresiva.
 - Controles de gestión inferiores.
-- Código JS embebido.
+- Código JS en la etiqueta <script>.
 - Audio embebido para los sonidos.
-
----
-
-## 🔧 Requisitos de uso
-
-1️⃣ Colocar el archivo `sonido.mp3` en la misma carpeta que el `.html`.
-
-2️⃣ Abrir el archivo en cualquier navegador moderno.  
-
-No requiere instalación de librerías ni frameworks adicionales. Es 100% portable.
 
 ---
 
